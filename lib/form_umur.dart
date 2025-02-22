@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'form_bmi.dart';
+import 'database_helper.dart';
 // import 'package:http/http.dart' as http;
 // import 'dart:convert';
 
@@ -15,6 +17,22 @@ class _FormUmurPageState extends State<FormUmurPage> {
   );
   int selectedYear = 2005; // Default tahun yang ditampilkan
   final int initialIndex = 2005 - 1945; // Posisi awal di ListWheelScrollView
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  void _loadData() async {
+    final data = await _dbHelper.getLastSessionData();
+    if (data != null && data['age'] != null) {
+      setState(() {
+        selectedYear = data['age'];
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +57,7 @@ class _FormUmurPageState extends State<FormUmurPage> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10), // Buat rounded
                   child: LinearProgressIndicator(
-                    value: 0.33, // Progress sepertiga (1/3)
+                    value: 0.2, // Progress sepertiga (1/3)
                     backgroundColor: Colors.grey.shade400,
                     color: Color(0xFF65000B),
                     minHeight: 3, // Ketebalan progress bar
@@ -124,7 +142,13 @@ class _FormUmurPageState extends State<FormUmurPage> {
           ),
           SizedBox(height: 70),
           ElevatedButton(
-            onPressed: () => {},
+            onPressed: () {
+              _dbHelper.insertUserData({'age': selectedYear});
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => FormBmiPage()),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(

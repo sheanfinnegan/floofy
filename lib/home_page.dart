@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'form_umur.dart';
+import 'database_helper.dart';
 
 class HomePage extends StatelessWidget {
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+
   @override
   Widget build(BuildContext context) {
+    _checkAndCreateSession();
+
     return Scaffold(
       backgroundColor: Color(0xFFFFE5E5),
       body: Center(
@@ -87,5 +92,20 @@ class HomePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _checkAndCreateSession() async {
+    final lastId = await _dbHelper.getLastSessionId();
+    if (lastId == null) {
+      await _dbHelper.insertUserData({
+        'age': 0,
+        'bmi': 0.0,
+        'lengthOfCycle': 0,
+        'unusualBleeding': 0,
+        'numberOfIntercourse': 0,
+        'breastFeeding': 0,
+        'pregnancyNum': 0,
+      });
+    }
   }
 }
