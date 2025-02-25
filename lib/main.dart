@@ -1,15 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'home_page.dart';
+import 'database_helper.dart';
+import 'main_page.dart';
 
-import 'package:sqflite_common_ffi/sqflite_common_ffi.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:io';
 
-void main() {
+void main() async {
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
   runApp(MyApp());
+  await DatabaseHelper().resetDatabase();
 }
 
 class MyApp extends StatelessWidget {

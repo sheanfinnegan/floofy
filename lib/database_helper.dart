@@ -16,6 +16,19 @@ class DatabaseHelper {
     return _database!;
   }
 
+  Future<void> resetDatabase() async {
+    String path = join(await getDatabasesPath(), 'user_data.db');
+
+    // Hapus database jika ada
+    if (await databaseExists(path)) {
+      await deleteDatabase(path);
+      print("Database deleted successfully.");
+    }
+
+    // Re-init database
+    _database = await _initDatabase();
+  }
+
   // Initialize database
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'user_data.db');
@@ -27,13 +40,17 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE user_data(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        yob INTEGER,
         age INTEGER,
+        height REAL,
+        weight REAL,
         bmi REAL,
         unusualBleeding INTEGER,
         numberOfIntercourse INTEGER,
         breastFeeding INTEGER,
-        pregnancyNum INTEGER
+        pregnancyNum INTEGER,
         lengthOfCycle INTEGER,
+        lastPeriodDate DATE
       )
     ''');
   }
@@ -61,6 +78,23 @@ class DatabaseHelper {
     final db = await database;
     final result = await db.rawQuery(
       'SELECT * FROM user_data ORDER BY id DESC LIMIT 1',
+    );
+    print(result);
+    return result.isNotEmpty ? result.first : null;
+  }
+
+  Future<int> updateUserData(int? id, Map<String, dynamic> data) async {
+    final db = await database;
+    return await db.update('user_data', data, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Ambil data berdasarkan ID
+  Future<Map<String, dynamic>?> getSessionData(int? id) async {
+    final db = await database;
+    final result = await db.query(
+      'user_data',
+      where: 'id = ?',
+      whereArgs: [id],
     );
     return result.isNotEmpty ? result.first : null;
   }

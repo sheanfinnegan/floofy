@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'form_umur.dart';
 import 'database_helper.dart';
+import 'form_lastPeriod3.dart';
+
+int? currSessionId;
 
 class HomePage extends StatelessWidget {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -95,17 +98,30 @@ class HomePage extends StatelessWidget {
   }
 
   void _checkAndCreateSession() async {
-    final lastId = await _dbHelper.getLastSessionId();
-    if (lastId == null) {
-      await _dbHelper.insertUserData({
-        'age': 0,
-        'bmi': 0.0,
-        'lengthOfCycle': 0,
-        'unusualBleeding': 0,
-        'numberOfIntercourse': 0,
-        'breastFeeding': 0,
-        'pregnancyNum': 0,
-      });
+    currSessionId = await _dbHelper.getLastSessionId();
+    if (currSessionId == null) {
+      currSessionId = 0;
+    } else {
+      currSessionId = currSessionId! + 1;
     }
+
+    await _dbHelper.insertUserData({
+      'id': currSessionId,
+      'age': 0,
+      'yob': 0,
+      'bmi': 0.0,
+      'height': 0,
+      'weight': 0,
+      'lengthOfCycle': 0,
+      'unusualBleeding': -1,
+      'numberOfIntercourse': -1,
+      'breastFeeding': -1,
+      'pregnancyNum': -1,
+      'lastPeriodDate': null,
+    });
+    //
+    _dbHelper.getSessionData(currSessionId).then((res) {
+      print(res);
+    });
   }
 }

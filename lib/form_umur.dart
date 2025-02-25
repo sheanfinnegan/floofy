@@ -1,8 +1,11 @@
+import 'package:floofy_ml/home_page.dart';
 import 'package:flutter/material.dart';
 import 'form_bmi.dart';
 import 'database_helper.dart';
 // import 'package:http/http.dart' as http;
 // import 'dart:convert';
+
+int? tahunAwal;
 
 class FormUmurPage extends StatefulWidget {
   @override
@@ -16,20 +19,29 @@ class _FormUmurPageState extends State<FormUmurPage> {
     (index) => 1945 + index,
   );
   int selectedYear = 2005; // Default tahun yang ditampilkan
-  final int initialIndex = 2005 - 1945; // Posisi awal di ListWheelScrollView
+
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData(); // Muat data setelah halaman selesai dibangun
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadData(); // Muat data setiap kali halaman dibuka
   }
 
   void _loadData() async {
-    final data = await _dbHelper.getLastSessionData();
-    if (data != null && data['age'] != null) {
+    final data = await _dbHelper.getSessionData(currSessionId);
+    if (data != null && data['yob'] != null && data['yob'] != 0) {
       setState(() {
-        selectedYear = data['age'];
+        selectedYear = data['yob'];
+        tahunAwal = selectedYear;
       });
     }
   }
@@ -101,16 +113,23 @@ class _FormUmurPageState extends State<FormUmurPage> {
               perspective: 0.003, // Efek 3D
               diameterRatio: 1.5, // Mengontrol lengkungan
               controller: FixedExtentScrollController(
-                initialItem: initialIndex,
+                initialItem: (tahunAwal ?? 2005) - 1945,
               ), // Mulai dari tahun 2005
               onSelectedItemChanged: (index) {
                 setState(() {
                   selectedYear = years[index];
+                  tahunAwal = selectedYear;
                 });
               },
               childDelegate: ListWheelChildBuilderDelegate(
                 builder: (context, index) {
-                  final isSelected = years[index] == selectedYear;
+                  var isSelected = years[index] == tahunAwal;
+                  if (tahunAwal == null) {
+                    isSelected = years[index] == 2005;
+                  } else {
+                    isSelected = years[index] == tahunAwal;
+                  }
+
                   return Stack(
                     alignment: Alignment.center,
                     children: [
@@ -143,7 +162,10 @@ class _FormUmurPageState extends State<FormUmurPage> {
           SizedBox(height: 70),
           ElevatedButton(
             onPressed: () {
-              _dbHelper.insertUserData({'age': selectedYear});
+              _dbHelper.updateUserData(currSessionId, {'age': selectedYear});
+              _dbHelper.getSessionData(currSessionId).then((res) {
+                print(res);
+              });
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => FormBmiPage()),

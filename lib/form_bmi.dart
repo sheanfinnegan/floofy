@@ -1,3 +1,4 @@
+import 'package:floofy_ml/home_page.dart';
 import 'package:flutter/material.dart';
 import 'form_lastPeriod.dart';
 // import 'package:http/http.dart' as http;
@@ -31,21 +32,29 @@ class _FormBmiPageState extends State<FormBmiPage> {
 
     heightController.addListener(() {
       setState(() {
-        weight = weightController.text;
+        height = heightController.text;
       });
     });
   }
 
   void _loadData() async {
-    final data = await _dbHelper.getLastSessionData();
+    final data = await _dbHelper.getSessionData(currSessionId);
     if (data != null) {
       setState(() {
         weightController.text =
-            data['bmi'] != null ? data['bmi'].toString() : '';
+            data['weight'] != 0 ? data['weight'].toString() : '';
         heightController.text =
-            data['height'] != null ? data['height'].toString() : '';
+            data['height'] != 0 ? data['height'].toString() : '';
       });
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData(); // Muat data setelah halaman selesai dibangun
+    }); // Muat data setiap kali halaman dibuka
   }
 
   @override
@@ -59,8 +68,13 @@ class _FormBmiPageState extends State<FormBmiPage> {
     double weight = double.parse(weightController.text);
     double height = double.parse(heightController.text) / 100;
     bmi = weight / (height * height);
+    bmi = double.parse(bmi.toStringAsFixed(1));
 
     _saveData();
+
+    _dbHelper.getSessionData(currSessionId).then((res) {
+      print(res);
+    });
 
     Navigator.push(
       context,
@@ -69,12 +83,17 @@ class _FormBmiPageState extends State<FormBmiPage> {
   }
 
   void _saveData() async {
-    await _dbHelper.insertUserData({'bmi': bmi});
+    await _dbHelper.updateUserData(currSessionId, {
+      'bmi': bmi,
+      'weight': weight,
+      'height': height,
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: Color(0xFFFFE5E5),
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(60), // Tinggikan agar tidak overflow
@@ -107,126 +126,128 @@ class _FormBmiPageState extends State<FormBmiPage> {
         ),
       ),
 
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(height: 20),
-            SizedBox(
-              width: 300,
-              child: Text(
-                "Yuk Bantu Floofy Kenal kamu lebih jauh",
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(height: 20),
+              SizedBox(
+                width: 300,
+                child: Text(
+                  "Yuk Bantu Floofy Kenal kamu lebih jauh",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 27,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFFE57373),
+                    height: 1.3,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 15),
+              SizedBox(
+                child: Image.asset('assets/images/formbmi.png', height: 130),
+              ),
+
+              SizedBox(height: 20),
+              Text(
+                "Berapa Berat Badan Anda?",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 27,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
                   color: Color(0xFFE57373),
-                  height: 1.3,
                 ),
               ),
-            ),
+              SizedBox(height: 10),
 
-            SizedBox(height: 15),
-            SizedBox(
-              child: Image.asset('assets/images/formbmi.png', height: 130),
-            ),
-
-            SizedBox(height: 20),
-            Text(
-              "Berapa Berat Badan Anda?",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFE57373),
+              SizedBox(
+                width: 300,
+                child: TextField(
+                  controller: weightController,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: "Masukkan berat badan (kg)",
+                    hintStyle: TextStyle(
+                      // Tambahkan ini untuk membuat hintText bold
+                      fontSize: 17,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    filled: true,
+                    fillColor: Color(0xFFE57373).withOpacity(0.3),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      vertical: 15,
+                      horizontal: 20,
+                    ),
+                  ),
+                ),
               ),
-            ),
-            SizedBox(height: 10),
 
-            SizedBox(
-              width: 300,
-              child: TextField(
-                controller: weightController,
+              SizedBox(height: 20),
+              Text(
+                "Berapa Tinggi Badan Anda?",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  hintText: "Masukkan berat badan (kg)",
-                  hintStyle: TextStyle(
-                    // Tambahkan ini untuk membuat hintText bold
-                    fontSize: 17,
-                    fontWeight: FontWeight.normal,
-                  ),
-                  filled: true,
-                  fillColor: Color(0xFFE57373).withOpacity(0.3),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: EdgeInsets.symmetric(
-                    vertical: 15,
-                    horizontal: 20,
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFE57373),
+                ),
+              ),
+              SizedBox(height: 10),
+              SizedBox(
+                width: 300,
+                child: TextField(
+                  controller: heightController,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: "Masukkan tinggi badan (cm)",
+                    hintStyle: TextStyle(
+                      // Tambahkan ini untuk membuat hintText bold
+                      fontSize: 17,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    filled: true,
+                    fillColor: Color(0xFFE57373).withOpacity(0.3),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      vertical: 15,
+                      horizontal: 20,
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            SizedBox(height: 20),
-            Text(
-              "Berapa Tinggi Badan Anda?",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFE57373),
-              ),
-            ),
-            SizedBox(height: 10),
-            SizedBox(
-              width: 300,
-              child: TextField(
-                controller: heightController,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  hintText: "Masukkan tinggi badan (cm)",
-                  hintStyle: TextStyle(
-                    // Tambahkan ini untuk membuat hintText bold
-                    fontSize: 17,
-                    fontWeight: FontWeight.normal,
+              SizedBox(height: 70),
+              ElevatedButton(
+                onPressed: _calculateBmi,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  filled: true,
-                  fillColor: Color(0xFFE57373).withOpacity(0.3),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: EdgeInsets.symmetric(
-                    vertical: 15,
-                    horizontal: 20,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 60, vertical: 12),
+                ),
+                child: Text(
+                  "Berikutnya",
+                  style: TextStyle(color: Color(0xFFE57373)),
                 ),
               ),
-            ),
-
-            SizedBox(height: 70),
-            ElevatedButton(
-              onPressed: _calculateBmi,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 60, vertical: 12),
-              ),
-              child: Text(
-                "Berikutnya",
-                style: TextStyle(color: Color(0xFFE57373)),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
