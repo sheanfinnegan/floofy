@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'dart:math';
-import 'home_page.dart';
 import 'database_helper.dart';
 
 DateTime? lastPeriodDate;
+double? predictedCycleLength;
 
 class PredictPage extends StatefulWidget {
   @override
@@ -12,6 +14,7 @@ class PredictPage extends StatefulWidget {
 
 class _PredictPageState extends State<PredictPage> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  Map<String, dynamic>? userData;
 
   @override
   void initState() {
@@ -20,22 +23,57 @@ class _PredictPageState extends State<PredictPage> {
   }
 
   void _loadData() async {
-    final data = await _dbHelper.getSessionData(currSessionId);
+    final data = await _dbHelper.getLastSessionData();
     if (data != null) {
       setState(() {
+        userData = data;
         lastPeriodDate =
             data['lastPeriodDate'] != null
-                ? DateTime.parse(data['lastPeriodDate']) // Convert from string
+                ? DateTime.parse(data['lastPeriodDate'])
                 : null;
       });
+
+      // Now fetch prediction using loaded data
+      _fetchPrediction();
     }
-    // print(_lastPeriodDate);
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadData(); // Muat data setiap kali halaman dibuka
+  Future<void> _fetchPrediction() async {
+    if (userData == null) return;
+
+    String url = "http://127.0.0.1:5000/predict"; // Change to Flask server IP
+
+    int currentYear = DateTime.now().year;
+    int age =
+        (currentYear - (userData?['age']?.toInt() ?? currentYear)).toInt();
+
+    Map<String, dynamic> userInput = {
+      "Age": age,
+      "BMI": userData?['bmi'] ?? 32.5,
+      "UnusualBleeding": userData?['unusualBleeding'] ?? 0,
+      "NumberofDaysofIntercourse": userData?['numberOfIntercourse'] ?? 0,
+      "Breastfeeding": userData?['breastFeeding'] ?? 0,
+      "Numberpreg": userData?['pregnancyNum'] ?? 0,
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(userInput),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          predictedCycleLength = data['predicted_cycle_length'];
+        });
+      } else {
+        print("Error: ${response.body}");
+      }
+    } catch (e) {
+      print("Request Failed: $e");
+    }
   }
 
   String formatDate(DateTime date) {
@@ -54,15 +92,7 @@ class _PredictPageState extends State<PredictPage> {
       'Nov',
       'Des',
     ];
-
-    String day = date.day.toString();
-    String month = monthNames[date.month];
-    String year =
-        date.year % 100 < 10
-            ? '0${date.year % 100}' // Tambah 0 kalau perlu
-            : '${date.year % 100}';
-
-    return '$day $month $year';
+    return '${date.day} ${monthNames[date.month]} ${date.year % 100}';
   }
 
   @override
@@ -75,13 +105,11 @@ class _PredictPageState extends State<PredictPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
-              // width: ,
               height: 270,
               child: Image.asset('assets/images/FloofyLogo.png'),
             ),
             SizedBox(
               width: 300,
-              // height: 300,
               child: CustomPaint(
                 painter: CyclePainter(),
                 child: Center(
@@ -97,14 +125,14 @@ class _PredictPageState extends State<PredictPage> {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                'Start Period:  ${lastPeriodDate != null ? formatDate(lastPeriodDate!) : '-'}',
+                                'Start Period: ${lastPeriodDate != null ? formatDate(lastPeriodDate!) : '-'}',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.white,
                                 ),
                               ),
                               Text(
-                                'Cycle Length (P): 28 hari',
+                                'Cycle Length (P): ${predictedCycleLength?.toStringAsFixed(1) ?? "Loading..."} hari',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.white,
@@ -120,7 +148,16 @@ class _PredictPageState extends State<PredictPage> {
                                 ),
                               ),
                               Text(
-                                '18 Februari 2025',
+                                lastPeriodDate != null &&
+                                        predictedCycleLength != null
+                                    ? formatDate(
+                                      lastPeriodDate!.add(
+                                        Duration(
+                                          days: predictedCycleLength!.toInt(),
+                                        ),
+                                      ),
+                                    )
+                                    : 'Calculating...',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
@@ -158,7 +195,6 @@ class CyclePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-
     final radius = size.width / 2;
     final paint =
         Paint()
@@ -169,9 +205,6 @@ class CyclePainter extends CustomPainter {
     // Lingkaran dasar
     paint.color = Color(0xFFFBE1DE)!;
     canvas.drawCircle(center, radius - 10, paint);
-
-    // paint.color = Colors.white!;
-    // canvas.drawCircle(center, radius - 10, paint);
 
     // Haid (bagian atas)
     paint.color = Color(0xFFF65000B)!;
@@ -236,7 +269,6 @@ class CyclePainter extends CustomPainter {
     );
     textPainter.layout();
 
-    // Hitung posisi teks berdasarkan sudut dan radius
     final x = center.dx + radius * cos(angle) - textPainter.width / 2;
     final y = center.dy + radius * sin(angle) - textPainter.height / 2;
 
