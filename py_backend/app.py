@@ -53,11 +53,12 @@ def predict():
         # arima_model = ARIMA(history_target, exog=history_exog, order=(2, 0, 2)).fit()
 
         # Return response
-        return jsonify({"predicted_cycle_length": round(prediction, 2)})
+        return jsonify({"predicted_cycle_length": int(round(prediction, 0))})
 
     except Exception as e:
         print(f"Prediction error: {str(e)}")  # Debugging logs
         return jsonify({"error": str(e)})
 
 if __name__ == "__main__":
+    # app.run(host="127.0.0.1", port=5000, debug=True)
     app.run(host="0.0.0.0", port=5000, debug=True)

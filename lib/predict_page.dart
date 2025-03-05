@@ -5,6 +5,7 @@ import 'dart:math';
 import 'database_helper.dart';
 
 DateTime? lastPeriodDate;
+DateTime? nextPeriodDate;
 double? predictedCycleLength;
 
 class PredictPage extends StatefulWidget {
@@ -41,8 +42,9 @@ class _PredictPageState extends State<PredictPage> {
   Future<void> _fetchPrediction() async {
     if (userData == null) return;
 
-    String url = "http://127.0.0.1:5000/predict"; // Change to Flask server IP
-
+    String url =
+        "http://10.68.96.233:5000/predict"; // Change to Flask server IP
+    // "http://127.0.0.1:5000/predict";
     int currentYear = DateTime.now().year;
     int age =
         (currentYear - (userData?['age']?.toInt() ?? currentYear)).toInt();
@@ -67,6 +69,9 @@ class _PredictPageState extends State<PredictPage> {
         final data = jsonDecode(response.body);
         setState(() {
           predictedCycleLength = data['predicted_cycle_length'];
+          nextPeriodDate = lastPeriodDate!.add(
+            Duration(days: predictedCycleLength!.toInt()),
+          );
         });
       } else {
         print("Error: ${response.body}");

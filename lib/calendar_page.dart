@@ -183,6 +183,13 @@ class _CalendarPageState extends State<CalendarPage> {
         lastPeriodDate!.month,
         lastPeriodDate!.day + i,
       ),
+
+    for (int i = 0; i < 5; i++)
+      DateTime(
+        nextPeriodDate!.year,
+        nextPeriodDate!.month,
+        nextPeriodDate!.day + i,
+      ),
   ];
 
   /// **Mengecek apakah hari memiliki event (untuk styling)**
